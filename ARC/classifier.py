@@ -37,14 +37,14 @@ class SeqClassifier:
         blast_path (str): optional argument containing the path to your BLAST installation"""
 
     def __init__(
-        self, seqfile=None, outfile=None, threads=1, hmmer_path=None, blast_path=None
-    ):
+        self, seqfile=None, outfile=None, threads=1, hmmer_path=None, blast_path=None, hmm_path=None):
         # Relative paths and IO handling
         self.package_directory = os.path.dirname(os.path.abspath(__file__))
         self.seqfile = seqfile
         self.outfile = outfile
         # HMM related scores and files
         self.hmm_score_threshold = 25
+        self.hmm_path = hmm_path if hmm_path != None else os.path.join(self.package_directory, "data/HMMs/ALL_AND_C.hmm")
         self.mhc_I_hmm = os.path.join(
             self.package_directory, "data/MHC_HMMs/Pfam_MHC_I.hmm"
         )
@@ -131,7 +131,7 @@ class SeqClassifier:
                 hmmer,
                 "-o",
                 hmm_out.name,
-                os.path.join(self.package_directory, "data/HMMs/ALL_AND_C.hmm"),
+                self.hmm_path,
                 temp_out.name,
             ]
             cmd = (" ").join(args)
