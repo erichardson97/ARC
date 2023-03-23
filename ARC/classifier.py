@@ -565,7 +565,7 @@ class SeqClassifier:
                             return True
                 return False
 
-    def assign_class(self, seq_record):
+    def assign_class(self, seq_record, bit_score_threshold = 100):
         """Classifies sequence as BCR, TCR, or MHC
 
         Args:
@@ -578,7 +578,7 @@ class SeqClassifier:
             receptor, chain_type = None, None
             self.run_hmmscan(seq_record, hmm_out)
             hmmer_query = SearchIO.read(hmm_out.name, "hmmer3-text")
-            hit_table, top_descriptions = self.parse_hmmer_query(hmmer_query)
+            hit_table, top_descriptions = self.parse_hmmer_query(hmmer_query, bit_score_threshold = bit_score_threshold)
             print(hit_table, top_descriptions)
             try:
                 score = int(hit_table[1][3] - 100)
@@ -672,7 +672,7 @@ class SeqClassifier:
             )
         return receptor, chain_type, calc_mhc_allele
 
-    def classify(self, seq_record):
+    def classify(self, seq_record, bit_score_threshold):
         """Returns BCR, TCR or MHC class and chain type for an input sequence.
 
         If sequence is MHC, finds its g-domain and returns its corresponding
@@ -686,7 +686,7 @@ class SeqClassifier:
         """
         g_domain = ""
         calc_mhc_allele = ""
-        receptor, chain_type, score = self.assign_class(seq_record)
+        receptor, chain_type, score = self.assign_class(seq_record, bit_score_threshold = bit_score_threshold)
         if receptor == "MHC-I" or receptor == "MHC-II":
             g_domain = self.assign_Gdomain(str(seq_record.seq), seq_record.id)
             calc_mhc_allele = self.get_MRO_allele(
