@@ -304,9 +304,7 @@ class SeqClassifier:
 
         # Check if the construct is artificial scfv BCR
         if ndomains == 2 and top_domains_set.issubset(bcr_var.keys()):
-            domain_1 = next(iter(top_domains))
-            domain_2 = next(iter(top_domains))
-            print(top_domains)
+            domain_1, domain_2 = list(top_domains)
             if domain_1.split('_')[1] == "H" and domain_2.split('_')[1] == "L":
                 return ("BCR", "scFv", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
             elif domain_1.split('_')[1] == "L" and domain_2.split('_')[1] == "H":
@@ -316,8 +314,7 @@ class SeqClassifier:
 
         # Check if the construct is artificial scfv TCR
         if ndomains == 2 and top_domains_set.issubset(tcr_var.keys()):
-            domain_1 = next(iter(top_domains))
-            domain_2 = next(iter(top_domains))
+            domain_1, domain_2 = list(top_domains)
             return ("TCR", "TscFv", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
 
         # Check for tandem scfv's and other rare 3+ domain constructs
