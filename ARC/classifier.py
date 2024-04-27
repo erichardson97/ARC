@@ -704,7 +704,7 @@ class SeqClassifier:
             )
         return receptor, chain_type, calc_mhc_allele, species
 
-    def classify(self, seq_record, bit_score_threshold):
+    def classify(self, seq_record, bit_score_threshold = 100):
         """Returns BCR, TCR or MHC class and chain type for an input sequence.
 
         If sequence is MHC, finds its g-domain and returns its corresponding
