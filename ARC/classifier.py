@@ -306,7 +306,7 @@ class SeqClassifier:
         if ndomains == 2 and top_domains_set.issubset(bcr_var.keys()):
             domain_1 = next(iter(top_domains))
             domain_2 = next(iter(top_domains))
-            print(domain_1, domain_2)
+            print(top_domains)
             if domain_1.split('_')[1] == "H" and domain_2.split('_')[1] == "L":
                 return ("BCR", "scFv", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
             elif domain_1.split('_')[1] == "L" and domain_2.split('_')[1] == "H":
