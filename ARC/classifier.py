@@ -261,7 +261,8 @@ class SeqClassifier:
         """
 
         ndomains = len(top_hits)
-        top_domains = {x["id"].split("_")[1] for x in top_hits}
+        top_domains_set = {"".join(x["id"].split('_')[1:]) for x in top_hits}
+        top_domains = {x["id"] for x in top_hits}
         # print(top_domains)
         # These sets simplify checking for various conditions
         bcr_constant = {
@@ -287,60 +288,87 @@ class SeqClassifier:
 
         if ndomains == 1:
             # Check for single constant domains
-            if top_domains.issubset(bcr_constant):
+            if top_domains_set.issubset(bcr_constant):
                 # sets don't support indexing so this gets messy
-                return ("BCR", bcr_constant[next(iter(top_domains))])
-            if top_domains.issubset(tcr_constant):
-                return ("TCR", tcr_constant[next(iter(top_domains))])
+                return ("BCR", bcr_constant[next(iter(top_domains_set))],
+                        next(iter(top_domains)).split('_')[0])
+            if top_domains_set.issubset(tcr_constant):
+                return ("TCR", tcr_constant[next(iter(top_domains_set))],
+                        next(iter(top_domains)).split('_')[0])
 
             # Check for single variable domains
-            if top_domains.issubset(tcr_var.keys()):
-                return ("TCR", tcr_var[next(iter(top_domains))])
-            if top_domains.issubset(bcr_var.keys()):
-                return ("BCR", bcr_var[next(iter(top_domains))])
+            if top_domains_set.issubset(tcr_var.keys()):
+                return ("TCR", tcr_var[next(iter(top_domains_set))], next(iter(top_domains)).split('_')[0])
+            if top_domains_set.issubset(bcr_var.keys()):
+                return ("BCR", bcr_var[next(iter(top_domains_set))],  next(iter(top_domains)).split('_')[0])
 
         # Check if the construct is artificial scfv BCR
-        if ndomains == 2 and top_domains.issubset(bcr_var.keys()):
+        if ndomains == 2 and top_domains_set.issubset(bcr_var.keys()):
             domain_1 = next(iter(top_domains))
             domain_2 = next(iter(top_domains))
-            if domain_1 == "H" and domain_2 == "L":
-                return ("BCR", "scFv")
-            elif domain_1 == "L" and domain_2 == "H":
-                return ("BCR", "scFv")
+            if domain_1.split('_')[1] == "H" and domain_2.split('_')[1] == "L":
+                return ("BCR", "scFv", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
+            elif domain_1.split('_')[1] == "L" and domain_2.split('_')[1] == "H":
+                return ("BCR", "scFv", domain_2.split('_')[0] + '/' + domain_1.split('_')[0])
             else:
-                return ("BCR", "construct")
+                return ("BCR", "construct", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
 
         # Check if the construct is artificial scfv TCR
-        if ndomains == 2 and top_domains.issubset(tcr_var.keys()):
-            return ("TCR", "TscFv")
+        if ndomains == 2 and top_domains_set.issubset(tcr_var.keys()):
+            domain_1 = next(iter(top_domains))
+            domain_2 = next(iter(top_domains))
+            return ("TCR", "TscFv", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
 
         # Check for tandem scfv's and other rare 3+ domain constructs
-        if ndomains >= 3 and top_domains.issubset(tcr_var.keys()):
-            return ("TCR", "construct")
-        if ndomains >= 3 and top_domains.issubset(bcr_var.keys()):
-            return ("BCR", "construct")
-
-        if ndomains >= 2:
-            return ("Unknown", "construct")
+        if ndomains >= 3 and top_domains_set.issubset(tcr_var.keys()):
+            species = '/'.join([p.split('_')[0] for p in top_domains])
+            return ("TCR", "construct", species)
+        if ndomains >= 3 and top_domains_set.issubset(bcr_var.keys()):
+            species = '/'.join([p.split('_')[0] for p in top_domains])
+            return ("BCR", "construct", species)
 
         # Handle variable with constant
-        if any(x in iter(tcr_constant) for x in iter(top_domains)):
+        if any(x in iter(tcr_constant) for x in iter(top_domains_set)):
             for x in iter(top_domains):
-                if x in tcr_var:
+                if ''.join(x.split('_')[1:]) in tcr_var:
                     top_domains.remove(x)
+                    constant = next(iter(top_domains))
                     return (
                         "TCR",
-                        tcr_var[x] + ", " + tcr_constant[next(iter(top_domains))],
+                        tcr_var[x.split('_')[1]] + ", " + tcr_constant[''.join(constant.split('_')[1:])],
+                        x.split('_')[0] + '/' + constant.split('_')[0]
+                    )
+                elif ''.join(x.split('_')[1:]) in tcr_constant:
+                    top_domains.remove(x)
+                    variable = next(iter(top_domains))
+                    return (
+                        "TCR",
+                        tcr_var[variable.split('_')[1]] + ", " + tcr_constant[''.join(x.split('_')[1:])],
+                        variable.split('_')[0] + '/' + x.split('_')[0]
                     )
 
-        if any(x in iter(bcr_constant) for x in iter(top_domains)):
+        if any(x in iter(bcr_constant) for x in iter(top_domains_set)):
             for x in iter(top_domains):
-                if x in bcr_var:
+                if ''.join(x.split('_')[1:]) in bcr_var:
                     top_domains.remove(x)
+                    constant = next(iter(top_domains))
                     return (
                         "BCR",
-                        bcr_var[x] + ", " + bcr_constant[next(iter(top_domains))],
+                        bcr_var[x.split('_')[1]] + ", " + bcr_constant[''.join(constant.split('_')[1:])],
+                        x.split('_')[0] + '/' + constant.split('_')[0]
                     )
+                elif ''.join(x.split('_')[1:]) in bcr_constant:
+                    top_domains.remove(x)
+                    variable = next(iter(top_domains))
+                    return (
+                        "BCR",
+                        bcr_var[variable.split('_')[1]] + ", " + bcr_constant[''.join(x.split('_')[1:])],
+                        variable.split('_')[0] + '/' + x.split('_')[0]
+                    )
+
+        if ndomains >= 2:
+            species = '/'.join([p.split('_')[0] for p in top_domains])
+            return ("Unknown", "construct", species)
 
         return None, None
 
@@ -463,7 +491,6 @@ class SeqClassifier:
         cmd = " ".join(args)
         output = self.run_cmd(cmd)
         aln = [line.split() for line in output.splitlines()]
-
         # Search for score to see if there is a match
         for i, line in enumerate(aln):
             if line[0:3] == ["E-value", "score", "bias"] and aln[i + 2]:
@@ -565,6 +592,7 @@ class SeqClassifier:
                             return True
                 return False
 
+
     def assign_class(self, seq_record, bit_score_threshold = 100):
         """Classifies sequence as BCR, TCR, or MHC
 
@@ -583,15 +611,15 @@ class SeqClassifier:
                 score = int(hit_table[1][3] - 100)
             except:
                 score = int(0 - 100)
-            receptor, chain_type = self.get_chain_type(top_descriptions)
+            receptor, chain_type, species = self.get_chain_type(top_descriptions)
 
             # We have no hits so now we check for MHC and IgNAR
             # This avoids excessive computations
             if not receptor or not chain_type:
                 if self.is_b2m(seq_record):
-                    return ("B2M", "-", 0)
+                    return ("B2M", "-", 0, '')
                 if self.is_ignar(seq_record):
-                    return ("BCR", "IgNAR", 0)
+                    return ("BCR", "IgNAR", 0, '')
                 mhc_I_score = None
                 mhc_I_score = self.is_MHC(str(seq_record.seq), self.mhc_I_hmm)
                 if mhc_I_score >= self.hmm_score_threshold:
@@ -599,6 +627,7 @@ class SeqClassifier:
                         "MHC-I",
                         "alpha",
                         int(mhc_I_score - self.hmm_score_threshold),
+                        ''
                     )
                 else:
                     mhc_II_alpha_score = None
@@ -613,6 +642,7 @@ class SeqClassifier:
                             "MHC-II",
                             "alpha",
                             mhc_II_alpha_score - self.hmm_score_threshold,
+                            ''
                         )
                     else:
                         mhc_II_beta_score = None
@@ -627,26 +657,29 @@ class SeqClassifier:
                                 "MHC-II",
                                 "beta",
                                 int(mhc_II_beta_score - self.hmm_score_threshold),
+                                ''
                             )
                         else:
                             if mhc_II_alpha_score == 0 and mhc_II_beta_score == 0:
-                                return (None, None, score)
+                                return (None, None, score, '')
                             if mhc_II_alpha_score >= mhc_II_beta_score:
                                 return (
                                     None,
                                     None,
                                     int(mhc_II_alpha_score - self.hmm_score_threshold),
+                                    ''
                                 )
                             else:
                                 return (
                                     None,
                                     None,
                                     int(mhc_II_beta_score - self.hmm_score_threshold),
+                                    ''
                                 )
             else:
                 if score < 0:
                     score = 0
-                return (receptor, chain_type, score)
+                return (receptor, chain_type, score, species)
 
     def gen_classify(self, seq, seq_id):
         """Returns BCR, TCR, or MHC class and chain type for input sequence without needing
@@ -663,13 +696,13 @@ class SeqClassifier:
         seq_record = SeqRecord(Seq(seq), id=seq_id)
         g_domain = ""
         calc_mhc_allele = ""
-        receptor, chain_type, score = self.assign_class(seq_record)
+        receptor, chain_type, score, species = self.assign_class(seq_record)
         if receptor == "MHC-I" or receptor == "MHC-II":
             g_domain = self.assign_Gdomain(str(seq_record.seq), seq_record.id)
             calc_mhc_allele = self.get_MRO_allele(
                 self.mro_df, str(seq_record.seq), str(seq_record.description)
             )
-        return receptor, chain_type, calc_mhc_allele
+        return receptor, chain_type, calc_mhc_allele, species
 
     def classify(self, seq_record, bit_score_threshold):
         """Returns BCR, TCR or MHC class and chain type for an input sequence.
@@ -685,23 +718,23 @@ class SeqClassifier:
         """
         g_domain = ""
         calc_mhc_allele = ""
-        receptor, chain_type, score = self.assign_class(seq_record, bit_score_threshold = bit_score_threshold)
+        receptor, chain_type, score, species = self.assign_class(seq_record, bit_score_threshold = bit_score_threshold)
         if receptor == "MHC-I" or receptor == "MHC-II":
             g_domain = self.assign_Gdomain(str(seq_record.seq), seq_record.id)
             calc_mhc_allele = self.get_MRO_allele(
                 self.mro_df, str(seq_record.seq), str(seq_record.description)
             )
-        return receptor, chain_type, calc_mhc_allele, score
+        return receptor, chain_type, calc_mhc_allele, score, species
 
     def classify_multiproc(self, seq_list):
-        out = pd.DataFrame(columns=["id", "class", "chain_type", "calc_mhc_allele"])
+        out = pd.DataFrame(columns=["id", "class", "chain_type", "calc_mhc_allele", "species"])
         cnt = 0
         for seq in seq_list:
             if seq.seq == "":
                 print(f"{seq.description} has empty sequence. Skipping sequence.")
                 continue
             if self.check_seq(seq):
-                receptor, chain_type, calc_mhc_allele, score = self.classify(seq)
+                receptor, chain_type, calc_mhc_allele, score, species = self.classify(seq)
             else:
                 print(
                     f"{seq.description} contains invalid amino acid sequence. Skipping sequence."
@@ -713,6 +746,7 @@ class SeqClassifier:
             out.loc[cnt, "chain_type"] = chain_type
             out.loc[cnt, "calc_mhc_allele"] = calc_mhc_allele
             out.loc[cnt, "score"] = score
+            out.loc[cnt, "species"] = species
             cnt += 1
 
         return out
