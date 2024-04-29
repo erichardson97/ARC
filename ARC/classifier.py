@@ -284,7 +284,7 @@ class SeqClassifier:
 
         # We have no hits
         if ndomains == 0:
-            return None, None
+            return None, None, None
 
         if ndomains == 1:
             # Check for single constant domains
