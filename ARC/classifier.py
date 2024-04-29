@@ -307,7 +307,7 @@ class SeqClassifier:
             if len(top_domains) == 2:
                 domain_1, domain_2 = list(top_domains)
             else:
-                domain_1 = list(top_domains)
+                domain_1, = list(top_domains)
                 domain_2 = domain_1
             if domain_1.split('_')[1] == "H" and domain_2.split('_')[1] == "L":
                 return ("BCR", "scFv", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
@@ -321,7 +321,7 @@ class SeqClassifier:
             if len(top_domains) == 2:
                 domain_1, domain_2 = list(top_domains)
             else:
-                domain_1 = list(top_domains)
+                domain_1, = list(top_domains)
                 domain_2 = domain_1
             return ("TCR", "TscFv", domain_1.split('_')[0] + '/' + domain_2.split('_')[0])
 
